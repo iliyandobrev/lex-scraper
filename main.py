@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import shutil
+import re
 
 def scrape(act, page_number):
     url = "https://lex.bg/bg/laws/tree/" + act + "/" + page_number
@@ -37,8 +38,8 @@ def scrape(act, page_number):
             if unwanted is not None: unwanted.extract()
             unwanted = content.find("div", id="tl", style="margin: 0 auto;") # Find and remove flash player message
             if unwanted is not None: unwanted.extract()
-            if any(not c.isalnum() for c in trimmed_title): # Remove "/" character from title
-                final_title = trimmed_title.replace('/', '')     
+            if not trimmed_title.isalnum(): # Remove special characters characters from title 
+                final_title = re.sub('[()//\"]', "", trimmed_title)    
             else:
                 final_title = trimmed_title
             print("Final title: " + final_title)
@@ -50,7 +51,7 @@ def scrape(act, page_number):
                 write_to_file(act, final_title, content)
 
 def write_to_file(act, final_title, content):
-    f = open(act + "/" + final_title + ".txt", "x", encoding="utf-8") # Create a file as title
+    f = open("docs/" + act + "/" + final_title + ".txt", "x", encoding="utf-8") # Create a file as title
     f.write(content.text.strip())
     f.close()
 
@@ -63,11 +64,12 @@ def trim_title(title): # This checks if title is long and trims it to be used as
 
 acts = {"code": 1, "ords": 70, "laws": 12, "regs": 15, "reg_laws": 2} # "code": 1, "ords": 70, "laws": 12, "regs": 15, "reg_laws": 2
 for act, pages in acts.items():
+    path = "docs/" + act
     try:
-        os.mkdir(act)
+        os.mkdir(path)
     except FileExistsError:
-        shutil.rmtree(act)
-        os.mkdir(act)
+        shutil.rmtree(path)
+        os.mkdir(path)
         pass
     for page_number in range(pages):
         scrape(act, str(page_number))
